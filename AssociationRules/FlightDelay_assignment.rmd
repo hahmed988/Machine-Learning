@@ -1,0 +1,134 @@
+---
+title: "FlightDelay_Assignment"
+author: "Haroon"
+date: "July 15, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Read File
+
+
+
+```{r cars}
+
+FlightData <- read.csv("FlightDelays.csv")
+
+
+
+```
+
+#Look at the summary of all the variables and convert the following variables as factors + Weather + DAY_WEEK + Flight Status# 
+
+
+
+```{r pressure, echo=FALSE}
+
+summary(FlightData)
+head(FlightData)
+str(FlightData)
+FlightData$Weather <- as.factor(FlightData$Weather)
+FlightData$DAY_WEEK <- as.factor(FlightData$DAY_WEEK)
+FlightData$Flight.Status <- as.factor(FlightData$Flight.Status)
+
+
+```
+
+#Convert the data frame in a transactions object. Look at the first 6 transactions to understand how 'arules' library requires data to be transformed. Use the below R code to view the transactions data
+
+```{r}
+
+FlightData$levels<-ifelse(FlightData$CRS_DEP_TIME>=600 & FlightData$CRS_DEP_TIME<=1200,"level1",
+               ifelse(FlightData$CRS_DEP_TIME>=1200 & FlightData$CRS_DEP_TIME<=1800,"level2",
+                      ifelse(FlightData$CRS_DEP_TIME>=1800 & FlightData$CRS_DEP_TIME<=2100,"level3","level4")))
+
+FlightData$levels <- as.factor(FlightData$levels)
+
+#library(infotheo)
+#FlightData$CRS_DEP_TIME <- discretize(FlightData$CRS_DEP_TIME, disc = 'equalwidth', nbins = 4)
+
+#FlightData$CRS_DEP_TIME <- as.factor(FlightData$CRS_DEP_TIME)
+#plot(Dept_time)
+
+#tapply(FlightData$CRS_DEP_TIME,Dept_Bin,min)
+#tapply(FlightData$CRS_DEP_TIME,Dept_Bin,max)
+
+```
+
+```{r}
+
+str(FlightData)
+
+```
+
+#Apply 'arules' algorithm and play with various support, lift and confidence values.
+
+```{r}
+  FlightData$CRS_DEP_TIME <- NULL  
+
+  library(arules)
+  rules <- apriori(FlightData,parameter = list(sup = 0.2, conf = 0.6,target="rules"))
+
+```
+
+
+#Inspect all the rules.
+
+```{r}
+
+summary(rules)
+inspect(rules)
+
+```
+
+
+#Filter the rules with specific LHS and RHS conditions E.g.; Filter the rules with Flighstatus=0
+
+```{r}
+
+rules.itemfilter2 <- as(subset(rules, subset = lhs %in% 
+                        "Flight.Status=0"),
+                        "data.frame")
+rules.itemfilter2 
+
+rules_Lift <- as(subset(rules, subset = rhs %in% "DEST=LGA" & lift > 1.01),
+                        "data.frame")
+rules_Lift
+
+
+```
+
+
+#Filter redundant rules if any
+
+```{r}
+
+inspect(rules[is.redundant(rules)])
+rules <- (rules[!is.redundant(rules)])
+
+```
+
+
+
+#Pot and visualize the rules
+
+```{r}
+
+library(arulesviz)
+plot(rules)
+
+```
+
+
+#Write the Rules into CSV
+
+
+```{r}
+
+write(rules, file = "data.csv", sep = ",")
+
+```
+

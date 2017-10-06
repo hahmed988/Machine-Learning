@@ -1,0 +1,106 @@
+---
+title: "GROUP5"
+author: "Haroon"
+date: "August 6, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+rm(list=ls(all=TRUE))
+
+setwd("C://MOOC//Insofe//Case Study//20170806_Batch 29_CSE 7305c_Case Study Analysis_ Group5//20170806_Batch 29_CSE 7305c_Case Study Analysis_ Group5")
+
+credit=read.csv("CreditCard_Defaulters.csv",header = TRUE,sep = "\t")
+head(credit)
+str(credit)
+
+credit$ID=NULL
+credit$LIMIT_BAL=NULL
+credit$BILL_AMT_APR=NULL
+credit$BILL_AMT_MAY=NULL
+credit$BILL_AMT_JUN=NULL
+credit$BILL_AMT_JUL=NULL
+credit$BILL_AMT_AUG=NULL
+credit$BILL_AMT_SEP=NULL
+
+credit$PAY_AMT_APR=NULL
+credit$PAY_AMT_MAY=NULL
+credit$PAY_AMT_JUN=NULL
+credit$PAY_AMT_JUL=NULL
+credit$PAY_AMT_AUG=NULL
+credit$PAY_AMT_SEP=NULL
+
+
+table(credit$PAY_APR)
+
+
+#credit$PAY_APR[credit$DEF_AMT_APR!=0 & credit$DEF_AMT_MAY!=0 & credit$DEF_AMT_JUN!=0 & credit$DEF_AMT_JUL!=0 & #credit$DEF_AMT_AUG!=0 & credit$DEF_AMT_SEP!=0 & credit$PAY_APR==0 & credit$PAY_MAY==0 & credit$PAY_JUN==0 &  #credit$PAY_JUL==0 & credit$PAY_AUG==0 & credit$PAY_SEP==0]=1
+
+#credit$PAY_MAY[credit$DEF_AMT_APR!=0 & credit$DEF_AMT_MAY!=0 & credit$DEF_AMT_JUN!=0 & credit$DEF_AMT_JUL!=0 & #credit$DEF_AMT_AUG!=0 & credit$DEF_AMT_SEP!=0 & credit$PAY_APR=1 & credit$PAY_MAY==0 & credit$PAY_JUN==0 &  #credit$PAY_JUL==0 & credit$PAY_AUG==0 & credit$PAY_SEP==0]=2
+
+#credit$PAY_JUN[credit$DEF_AMT_APR!=0 & credit$DEF_AMT_MAY!=0 & credit$DEF_AMT_JUN!=0 & credit$DEF_AMT_JUL!=0 & #credit$DEF_AMT_AUG!=0 & credit$DEF_AMT_SEP!=0 & credit$PAY_APR=1 & credit$PAY_MAY==2& credit$PAY_JUN==0 &  #credit$PAY_JUL==0 & credit$PAY_AUG==0 & credit$PAY_SEP==0]=3
+
+
+#credit$PAY_JUL[credit$DEF_AMT_APR!=0 & credit$DEF_AMT_MAY!=0 & credit$DEF_AMT_JUN!=0 & credit$DEF_AMT_JUL!=0 & #credit$DEF_AMT_AUG!=0 & credit$DEF_AMT_SEP!=0 & credit$PAY_APR=1 & credit$PAY_MAY==2 & credit$PAY_JUN==3 & #credit$PAY_JUL==0 & credit$PAY_AUG==0 & credit$PAY_SEP==0]=4
+
+#credit$PAY_AUG[credit$DEF_AMT_APR!=0 & credit$DEF_AMT_MAY!=0 & credit$DEF_AMT_JUN!=0 & credit$DEF_AMT_JUL!=0 & #credit$PAY_APR=1 & credit$PAY_MAY==2 & credit$PAY_JUN==3 & credit$PAY_JUL==4&credit$DEF_AMT_AUG!=0 & #credit$DEF_AMT_SEP!=0 & credit$PAY_AUG==0 & credit$PAY_SEP==0]=5
+
+
+
+#credit$PAY_SEP[credit$DEF_AMT_APR!=0 & credit$DEF_AMT_MAY!=0 & credit$DEF_AMT_JUN!=0 & credit$DEF_AMT_JUL!=0 & #credit$DEF_AMT_AUG!=0 & credit$DEF_AMT_SEP!=0 & credit$PAY_APR==0 & credit$PAY_MAY==0 & credit$PAY_JUN==0 &  #credit$PAY_JUL==0 & credit$PAY_AUG==0 & credit$PAY_SEP==0]=6
+
+indexs=which(credit$DEF_AMT_APR!=0 & credit$DEF_AMT_MAY!=0 & credit$DEF_AMT_JUN!=0 & credit$DEF_AMT_JUL!=0 & credit$DEF_AMT_AUG!=0 & credit$DEF_AMT_SEP!=0 & credit$PAY_APR==0 & credit$PAY_MAY==0 & credit$PAY_JUN==0 &  credit$PAY_JUL==0 & credit$PAY_AUG==0 & credit$PAY_SEP==0)
+
+
+credit$PAY_APR[indexs]=1
+credit$PAY_MAY[indexs]=2
+credit$PAY_JUN[indexs]=3
+credit$PAY_JUL[indexs]=4
+credit$PAY_AUG[indexs]=5
+credit$PAY_SEP[indexs]=6
+
+str(credit)
+
+credit$SEX=as.factor(credit$SEX)
+credit$EDUCATION=as.factor(credit$EDUCATION)
+credit$MARRIAGE=as.factor(credit$MARRIAGE)
+
+credit$default.payment.next.month=as.factor(credit$default.payment.next.month)
+
+
+sum(is.na(credit))
+
+
+```
+
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+```{r}
+
+library(DMwR)
+
+#credit[, credit$PAY_APR==0] <- NA  
+credit$PAY_APR[credit$PAY_APR==0] <- NA
+credit$PAY_MAY[credit$PAY_MAY==0] <- NA
+credit$PAY_JUN[credit$PAY_JUN==0] <- NA
+credit$PAY_JUL[credit$PAY_JUL==0] <- NA
+credit$PAY_AUG[credit$PAY_AUG==0] <- NA
+credit$PAY_SEP[credit$PAY_SEP==0] <- NA
+
+#credit1 <- knnImputation(credit, k = 2, scale = F)
+
+
+
+
+```
+
