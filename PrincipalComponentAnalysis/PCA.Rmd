@@ -1,0 +1,270 @@
+---
+title: "Principal Component Analysis Activity"
+author: "INSOFE Lab Activity on PCA"
+date: "2 July 2017"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+**NOTE** Before starting this assignment please remember to clear your environment, you can do that by running the following code chunk
+
+```{r}
+
+rm(list = ls(all=TRUE))
+
+```
+
+# Agenda
+
+* Derive Principal Components (Principal Modes of Variation)
+
+* Understand PCA from first principles
+
+* Understand the Importance of Data Scaling in PCA
+
+* Automated computation of the Principal Components
+
+* Apply PCA for data complexity reduction
+
+# Iris Data
+
+**Data Description:**
+
+- The data set contains 5 variables and 3 classes of 50 instances each, where each class refers to a type of iris plant.
+
+- The variable names are self explanatory
+
+## Understand the data
+
+* Read in the data
+
+```{r}
+
+setwd("C:\\MOOC\\Insofe\\Module 1 - Probability and Statistics\\Logistic Regression\\20170702_Batch29_CSE7302c_PCA_Lab04_Activity02\\20170702_Batch29_CSE7302c_PCA_Lab04_Activity02")
+iris_data <- read.csv("iris.csv")
+
+```
+
+
+* Get the structure and summary of the data
+
+* The data has 5 attributes and 150 rows
+
+```{r}
+
+str(iris_data)
+
+summary(iris_data)
+
+```
+
+# Computing PCA from the first principles
+
+## Linear Separability in the data
+
+* Compute the variance of each variable in the dataset
+
+* Plot the data across the two variables with the highest variance
+
+```{r}
+
+# Using lapply() function we apply the var() function on each of the variables excluding the target
+
+lapply(iris_data[, -5], var)
+
+# Plot the data points on the axes with the highest variances
+
+plot(iris_data$Sepal.Length, iris_data$Petal.Length, col = iris_data$Species, xlab = "Sepal Length", ylab = "Petal Length",
+    main = "Linear Separability before PCA")
+
+legend(7,4.3,unique(iris_data$Species),col=1:length(iris_data$Species),pch=1)
+
+```
+
+* From the above plot it is visible that the data cannot be linearly separated by just using two axes, that too the ones with the highest variance
+
+## Covariance Matrix
+
+* Compute the covariance matrix of the dataset using the cov() function
+
+```{r}
+
+# don't get confused, cov(x,x) = var(x)
+
+cov_mat <- cov(iris_data[ , -5])
+
+```
+
+* The covariance matrix is as follows
+
+```{r}
+
+print(cov_mat)
+
+```
+
+
+## Eigenvectors of the Covariance Matrix
+
+* The eigen vectors of the covariance matrix give us __the directions along which the data varies the most__
+
+* We can access the eigenvectors from the list returned by the eigen() function  by using '$vectors'
+
+```{r}
+
+# storing the eigen vectors in the eigen_vec variable
+
+eigen_vec <- eigen(cov_mat)$vectors
+
+print(eigen_vec)
+
+```
+
+## Rotation of the original datapoints
+
+* We __Matrix Multiply the Original Data Points with the Eigen Vectors of the Covariance Matrix__, this rotates the data points so that the principal components are now the reference axes
+
+```{r}
+
+# Original datapoints projected to the Principal Components
+
+# "%*%" operator is a matrix multiplier
+
+pca_mat <- as.matrix(iris_data[, -5]) %*% as.matrix(eigen_vec)
+
+```
+
+
+## Linear Separability after transformation
+
+* After transforming the data, we plot the data on the two principal components with the highest variance and can find that the Species are now linearly separable
+
+```{r}
+
+# Add the Species column back to the data frame
+
+pca_f <- cbind(as.data.frame(pca_mat), iris_data$Species)
+
+# Change the colnames to "Species"
+
+colnames(pca_f)[5] <- c("Species")
+
+plot(pca_f$V1, pca_f$V2, col = pca_f$Species, xlab = "Principal Component 1", ylab = "Principal Component 2",
+    main = "Linear Separability after PCA")
+
+
+```
+
+# Data Pre-processing
+
+## Split the data into train and test
+
+We have to remove the state variable, as it has very low information content
+
+* 80/20 split of train and test
+
+```{r}
+
+set.seed(420)
+
+train_rows <- sample(1:nrow(iris_data), 0.8*nrow(iris_data))
+
+train_data <- iris_data[train_rows, ]
+
+test_data <- iris_data[-train_rows, ]
+
+```
+
+
+# Automated Computation of Principal Components
+
+## Unsclaed PCA computation
+
+* Use the prcomp() function to get the principal components, remove the "Species" variable while doing so
+
+```{r}
+
+pca <- prcomp(train_data[, !(names(train_data) %in% c("Species"))])
+pca.out <- princomp(train_data[, !(names(train_data) %in% c("Species"))])
+
+```
+
+* Plot the variance along each of the principal components using the plot() function on the prcomp object
+
+```{r}
+
+plot(pca)
+plot(pca.out)
+
+```
+
+
+* Plot the data points with the transformed principal components along with the old axes using the biplot() function on the prcomp object
+
+```{r, fig.width=8, fig.height=8}
+
+biplot(pca)
+
+```
+
+
+## Sclaed PCA computation
+
+* Use the prcomp() function to get the scaled principle components as it has two additional arguments to do so
+
+* Remove the "Species" variable while doing so
+
+```{r}
+
+pca_scaled <- prcomp(train_data[, !(names(train_data) %in% c("Species"))], center = T, scale. = T)
+Features <- scale(train_data[, !(names(train_data) %in% c("Species"))])
+
+pca_scaled1 <- princomp(Features)
+
+```
+
+* Plot the variance along each of the principal components
+
+* We can now see that the dominance of the variance along the first principal component has reduced significantly
+
+```{r}
+
+plot(pca_scaled)
+
+```
+
+* Plot the data points with the transformed principal components along with the old axes
+
+```{r, fig.width=8, fig.height=8}
+
+biplot(pca_scaled)
+
+```
+
+* Hence scaling the data before PCA, is extremely important as the higher range of one variable might unfairly influence the principal components
+
+# Apply PCA on the Original Data
+
+* Project the train and test data sets onto the derived principal components
+
+```{r}
+
+compressed_features = pca_scaled1$scores[,1:4]
+library(nnet)
+multout.pca <- multinom(iris_data$Species ~ Features)
+summary(multout.pca)
+
+train_pca_e <- as.data.frame(predict(pca_scaled, train_data[, !(names(train_data) %in% c("Species"))]))
+
+test_pca_e <- as.data.frame(predict(pca_scaled, test_data[, !(names(train_data) %in% c("Species"))]))
+
+```
+
+```{r}
+
+
+```
+

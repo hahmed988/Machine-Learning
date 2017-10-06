@@ -1,0 +1,574 @@
+---
+title: "Regularization on Customer Data Set to predict the Total Revenue Generated"
+author: "Insofe Labs"
+date: "28 June 2017"
+output:
+  html_document:
+    toc: yes
+    toc_depth: '3'
+  html_notebook:
+    fig_caption: yes
+    theme: united
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+```{r}
+#Attributes are self explanatory
+
+```
+#Clean Your Global Environment
+* Note that clearing the environment is a good practice while learning but when sharing the code remember to remove it.
+```{r}
+rm(list=ls(all=TRUE))
+setwd("C:\\MOOC\\Insofe\\Module 1 - Probability and Statistics\\Logistic Regression\\20170602_Batch29_CSE7302c_RegualrizationLabActivity")
+```
+#Libraries Required
+* Keeping the libraris at one place is a best practice 
+* Think and get  the libraries required for the problem 
+```{r}
+install.packages("Matrix")
+library(Matrix)
+library(glmnet)
+library(caret)
+library(MASS)
+library(vegan)
+library(data.table)
+library(doParallel)
+library(DMwR)
+library(dummies)
+library(car)
+
+```
+# Reading the Data Set 
+* Note that it is not always needed to get the directory set 
+* Just copy your csv and paste it between the quotes " " and deleted file:///
+```{r}
+CustomerData<-read.csv(
+"C:\\MOOC\\Insofe\\Module 1 - Probability and Statistics\\Logistic Regression\\20170602_Batch29_CSE7302c_RegualrizationLabActivity\\CustomerData.csv",header=TRUE,sep=",")
+```
+##Structure Check
+* Observing the structure will reveal what are the data types of attributes
+* It can be helpful to understand any data type changes are required
+```{r}
+str(CustomerData)
+summary(CustomerData)
+#car::outlierTest(CustomerData$MinAgeOfChild)
+
+remove_outliers <- function(x, na.rm = TRUE, ...) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = na.rm, ...)
+  H <- 1.5 * IQR(x, na.rm = na.rm)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+
+CustomerData$NoOfChildren <- CustomerData$NoOfChildren[which.max(CustomerData$NoOfChildren)]
+
+CustomerData1 <- CustomerData[,]
+CustomerData1$NChildren <- remove_outliers(CustomerData1$NoOfChildren)
+summary(CustomerData1)
+CustomerData1$MinAgeofC <- remove_outliers(CustomerData1$MinAgeOfChild)
+CustomerData1$MaxAgeofC <- remove_outliers(CustomerData1$MaxAgeOfChild)
+CustomerData1$FOPurchase <- remove_outliers(CustomerData1$FrquncyOfPurchase)
+CustomerData1$NOUPurchased <- remove_outliers(CustomerData1$NoOfUnitsPurchased)
+CustomerData1$NOUPurchased <- remove_outliers(CustomerData1$FrequencyOFPlay)
+CustomerData1$NOGamesPlayed <- remove_outliers(CustomerData1$NoOfGamesPlayed)
+CustomerData1$MinAgeOfChild <- NULL
+CustomerData1$MaxAgeOfChild <- NULL
+CustomerData1$FrquncyOfPurchase <- NULL
+CustomerData1$FrequencyOFPlay <- NULL
+CustomerData1$NoOfGamesPlayed <- NULL
+
+names(CustomerData1)
+names(CustomerData)
+
+
+```
+##Summary Check 
+* check the summary and remove unnecessary variables 
+  +  It is necessary to see basic stats of the variables 
+  +  NA values,Classes in the target and other attributes are counted in Summary
+```{r}
+CustomerData$CustomerID<-NULL
+summary(CustomerData)
+
+CustomerData1$CustomerID<-NULL
+summary(CustomerData1)
+
+```
+##Check Missing Values
+* Missing values impact the learning 
+```{r}
+sum(is.na(CustomerData))
+CustomerData$City <- as.factor(as.character(CustomerData$City))
+
+sum(is.na(CustomerData1))
+CustomerData1$City <- as.factor(as.character(CustomerData1$City))
+
+CustomerData1 <- knnImputation(CustomerData1, k=10, scale = T)
+
+```
+#Splitting the data
+* Split the data into train data set and test data set
+* Split ratio can be 80/20 or 70/30 
+* Splitting in case of classification be careful to see that the levels of    target  distribution is  in same proportion in both train and test 
+* This can be achieved with the Caret Package "createDataPartition"
+```{r}
+set.seed(125)
+rows=createDataPartition(CustomerData$TotalRevenueGenerated,p = 0.7,list = FALSE)
+train=CustomerData[rows,]
+test=CustomerData[-rows,]
+
+set.seed(125)
+rows1=createDataPartition(CustomerData1$TotalRevenueGenerated,p = 0.7,list = FALSE)
+train1=CustomerData1[rows,]
+test1=CustomerData1[-rows,]
+
+```
+# PreProcessing the data to standadize the numeric attributes
+* PreProcessing Required to standardize the attributes 
+* The conversion of the categorical to dummies is not done 
+```{r}
+preProc<-preProcess(train[,setdiff(names(train),"TotalRevenueGenerated")])
+train<-predict(preProc,train)
+test<-predict(preProc,test)
+
+preProc1<-preProcess(train1[,setdiff(names(train1),"TotalRevenueGenerated")])
+train1<-predict(preProc1,train1)
+test1<-predict(preProc1,test1)
+```
+#Parallel
+* Use the registerDoParallel() to speed up your process while cross validating
+* Those who use linux doMC also helps the same way by creating multiple cores
+```{r}
+registerDoParallel(8)
+```
+# Model Matrix will dummify the variables 
+```{r}
+x=model.matrix(train$TotalRevenueGenerated~.,train)
+head(x)
+
+x1=model.matrix(train1$TotalRevenueGenerated~.,train1)
+head(x1)
+```
+#Lasso - Ridge - Elasicnet Models
+* Regularization  always fits a linear model 
+* It involves penalizing the absolute size of the regression coefficients as per the value of alpha picked.
+* For regularization glmnet package is used.
+* This package is used for both regression and classification
+* Linear,Poisson regressions ,binomial and multinomial classifications are possible
+* Check the help with ?glmnet and use the arguments needed
+```{r}
+#install.packages('Matrix')
+#library(Matrix)
+#library('glmnet')
+fit.lasso <- glmnet(x, train$TotalRevenueGenerated, family="gaussian", alpha=1)
+fit.ridge <- glmnet(x, train$TotalRevenueGenerated, family="gaussian", alpha=0)
+fit.elnet <- glmnet(x, train$TotalRevenueGenerated, family="gaussian", alpha=0.5)
+
+fit.lasso1 <- glmnet(x1, train$TotalRevenueGenerated, family="gaussian", alpha=1)
+fit.ridge1 <- glmnet(x1, train$TotalRevenueGenerated, family="gaussian", alpha=0)
+fit.elnet1 <- glmnet(x1, train$TotalRevenueGenerated, family="gaussian", alpha=0.5)
+
+
+```
+#Cross validating the models 
+```{r}
+fit.lasso.cv <- cv.glmnet(x,train$TotalRevenueGenerated, type.measure="mse", alpha=1, 
+                          family="gaussian",nfolds=10,parallel=TRUE)
+fit.ridge.cv <- cv.glmnet(x,train$TotalRevenueGenerated, type.measure="mse", alpha=0, 
+                          family="gaussian",nfolds=10,parallel=TRUE)
+fit.elnet.cv <- cv.glmnet(x,train$TotalRevenueGenerated, type.measure="mse", alpha=0.5, 
+                          family="gaussian",nfolds=10,parallel=TRUE)
+
+fit.lasso.cv
+
+fit.lasso.cv1 <- cv.glmnet(x1,train$TotalRevenueGenerated, type.measure="mse", alpha=1, 
+                          family="gaussian",nfolds=10,parallel=TRUE)
+fit.ridge.cv1 <- cv.glmnet(x1,train$TotalRevenueGenerated, type.measure="mse", alpha=0, 
+                          family="gaussian",nfolds=10,parallel=TRUE)
+fit.elnet.cv1 <- cv.glmnet(x1,train$TotalRevenueGenerated, type.measure="mse", alpha=0.5, 
+                          family="gaussian",nfolds=10,parallel=TRUE)
+
+```
+# Various alpha and its effect on the models
+* Various values of alpha can effect the models 
+* The predictions can be made for various alpha and a suitable can be picked up
+* This can be done using for loop or like building it with trainControl of caret package
+```{r}
+for (i in 0:100) {
+    assign(paste("fit", i, sep=""), cv.glmnet(x,train$TotalRevenueGenerated, type.measure="mse", 
+                                              alpha=i/100,family="gaussian",nfolds=10,parallel=TRUE))
+}
+
+for (i in 0:100) {
+    assign(paste("Ofit", i, sep=""), cv.glmnet(x1,train1$TotalRevenueGenerated, type.measure="mse", 
+                                              alpha=i/100,family="gaussian",nfolds=10,parallel=TRUE))
+}
+```
+#Plotting the variaitions 
+```{r}
+par(mfrow=c(3,2))
+
+plot(fit.lasso, xvar="lambda")
+plot(fit10, main="LASSO")
+
+plot(fit.ridge, xvar="lambda")
+plot(fit10, main="Ridge")
+
+plot(fit.elnet, xvar="lambda")
+plot(fit10, main="Elastic Net")
+```
+
+
+
+
+
+
+# coefficients for the lasso Regularization 
+
+```{r}
+c = coef(fit.lasso.cv,s=fit.lasso.cv$lambda.1se)
+  inds <- which(c!=0)
+  imp_attributes_lasso <- row.names(c)[inds]
+  imp_attributes_lasso<- imp_attributes_lasso[-c(grep("Intercept",imp_attributes_lasso))]
+  imp_attributes_lasso 
+```
+# coefficients for the Ridge Regularization
+```{r}
+c = coef(fit.ridge.cv,s=fit.ridge.cv$lambda.1se)
+  inds <- which(c!=0)
+  imp_attributes_ridge <- row.names(c)[inds]
+  imp_attributes_ridge<- imp_attributes_ridge[-c(grep("Intercept",imp_attributes_ridge))]
+   imp_attributes_ridge
+```
+# coefficients for the Elastic-net Regularization
+```{r}
+c = coef(fit.elnet.cv,s=fit.elnet.cv$lambda.1se)
+  inds <- which(c!=0)
+  imp_attributes_elastic <- row.names(c)[inds]
+  imp_attributes_elastic<- imp_attributes_elastic[-c(grep("Intercept",imp_attributes_elastic))]
+   imp_attributes_elastic 
+```
+# Converting the test data into required format
+ Converting the test data into matrix 
+
+```{r}
+x.test = model.matrix(test$TotalRevenueGenerated~.,test)
+y.test = test$TotalRevenueGenerated
+
+x.test1 = model.matrix(test1$TotalRevenueGenerated~.,test1)
+y.test1 = test1$TotalRevenueGenerated
+
+```
+
+# Prediction on cross validated models
+
+```{r}
+pred.lasso.csv <- predict(fit.lasso.cv,x.test,s = fit.lasso.cv$lambda.min)
+
+pred.ridge.csv <- predict(fit.ridge.cv,x.test,s = fit.ridge.cv$lambda.min)
+
+pred.elnet.csv <- predict(fit.elnet.cv,x.test,s = fit.elnet.cv$lambda.min)
+
+
+
+
+pred.lasso.csv1 <- predict(fit.lasso.cv1,x.test1,s = fit.lasso.cv1$lambda.min)
+
+pred.ridge.csv1 <- predict(fit.ridge.cv1,x.test1,s = fit.ridge.cv1$lambda.min)
+
+pred.elnet.csv1 <- predict(fit.elnet.cv1,x.test1,s = fit.elnet.cv1$lambda.min)
+
+
+regr.eval(y.test,pred.lasso.csv)
+regr.eval(y.test,pred.ridge.csv)
+regr.eval(y.test,pred.elnet.csv)
+
+regr.eval(y.test1,pred.lasso.csv1)
+regr.eval(y.test1,pred.ridge.csv1)
+regr.eval(y.test1,pred.elnet.csv1)
+
+```
+
+# Error metrics for different alpha values
+*Predicitng the Total Revenue Generated and analysing the best model by using error metrics
+```{r}
+error=data.frame()
+for(i in 0:100)
+{ fit=paste0("fit",i)
+  pred<-predict(get(fit),x.test)
+  error=rbind(error,regr.eval(y.test,pred))
+}
+alpha=data.frame(seq(0,1,by=0.01))
+error=cbind(alpha,error)
+colnames(error)<-c("alpha","mae","mse","rmse","mape") 
+error
+```
+# Plot of mse vs alpha
+```{r}
+plot(error$alpha,error$mse,type = "o",xlab = "Alpha varying from 0.01-1",ylab = "mse",main="Variation of mse as alpha varies",col="Red")
+
+
+```
+# Plot of mae vs alpha
+```{r}
+plot(error$alpha,error$mae,type = "o",xlab = "Alpha varying from 0.01-1",ylab = "mae",main="Variation of mae as alpha varies",col="blue")
+```
+
+
+```{r}
+
+#DataTable
+
+DF = data.frame(x=rep(c("b","a","c"),each=3), y=c(1,3,6), v=1:9)
+DT = data.table(x=rep(c("b","a","c"),each=3), y=c(1,3,6), v=1:9)
+DF
+DT
+identical(dim(DT), dim(DF))    # TRUE
+identical(DF$a, DT$a)          # TRUE
+is.list(DF)                    # TRUE
+is.list(DT)                    # TRUE
+
+is.data.frame(DT)              # TRUE
+
+tables()
+
+# basic row subset operations
+DT[2]                          # 2nd row
+DT[3:2]                        # 3rd and 2nd row
+DT[order(x)]                   # no need for order(DT$x)
+DT[order(x), ]                 # same as above. The ',' is optional
+DT[y>2]                        # all rows where DT$y > 2
+DT[y>2 & v>5]                  # compound logical expressions
+DT[!2:4]                       # all rows other than 2:4
+DT[-(2:4)]                     # same
+
+# select|compute columns data.table way
+DT[, v]                        # v column (as vector)
+DT[, list(v)]                  # v column (as data.table)
+DT[, .(v)]                     # same as above, .() is a shorthand alias to list()
+DT[, sum(v)]                   # sum of column v, returned as vector
+DT[, .(sum(v))]                # same, but return data.table (column autonamed V1)
+DT[, .(sv=sum(v))]             # same, but column named "sv"
+DT[, .(v, v*2)]                # return two column data.table, v and v*2
+
+# subset rows and select|compute data.table way
+DT[2:3, sum(v)]                # sum(v) over rows 2 and 3, return vector
+DT[2:3, .(sum(v))]             # same, but return data.table with column V1
+DT[2:3, .(sv=sum(v))]          # same, but return data.table with column sv 
+DT[2:5, cat(v, "\n")]          # just for j's side effect
+
+# select columns the data.frame way
+DT[, 2, with=FALSE]            # 2nd column, returns a data.table always
+colNum = 2
+DT[, colNum, with=FALSE]       # same, equivalent to DT[, .SD, .SDcols=colNum]
+DT[["v"]]                      # same as DT[, v] but much faster
+
+# grouping operations - j and by
+DT[, sum(v), by=x]             # ad hoc by, order of groups preserved in result
+DT[, sum(v), keyby=x]          # same, but order the result on by cols
+DT[, sum(v), by=x][order(x)]   # same but by chaining expressions together
+
+# fast ad hoc row subsets (subsets as joins)
+DT["a", on="x"]                # same as x == "a" but uses binary search (fast)
+DT["a", on=.(x)]               # same, for convenience, no need to quote every column
+DT[.("a"), on="x"]             # same
+DT[x=="a"]                     # same, single "==" internally optimised to use binary search (fast)
+DT[x!="b" | y!=3]              # not yet optimized, currently vector scan subset
+DT[.("b", 3), on=c("x", "y")]  # join on columns x,y of DT; uses binary search (fast)
+DT[.("b", 3), on=.(x, y)]      # same, but using on=.()
+DT[.("b", 1:2), on=c("x", "y")]             # no match returns NA
+DT[.("b", 1:2), on=.(x, y), nomatch=0]      # no match row is not returned
+DT[.("b", 1:2), on=c("x", "y"), roll=Inf]   # locf, nomatch row gets rolled by previous row
+DT[.("b", 1:2), on=.(x, y), roll=-Inf]      # nocb, nomatch row gets rolled by next row
+DT["b", sum(v*y), on="x"]                   # on rows where DT$x=="b", calculate sum(v*y)
+
+# all together now
+DT[x!="a", sum(v), by=x]                    # get sum(v) by "x" for each i != "a"
+DT[!"a", sum(v), by=.EACHI, on="x"]         # same, but using subsets-as-joins
+DT[c("b","c"), sum(v), by=.EACHI, on="x"]   # same
+DT[c("b","c"), sum(v), by=.EACHI, on=.(x)]  # same, using on=.()
+
+# joins as subsets
+X = data.table(x=c("c","b"), v=8:7, foo=c(4,2))
+X
+
+DT[X, on="x"]                         # right join
+X[DT, on="x"]                         # left join
+DT[X, on="x", nomatch=0]              # inner join
+DT[!X, on="x"]                        # not join
+DT[X, on=.(y<=foo)]                   # NEW non-equi join (v1.9.8+)
+DT[X, on="y<=foo"]                    # same as above
+DT[X, on=c("y<=foo")]                 # same as above
+DT[X, on=.(y>=foo)]                   # NEW non-equi join (v1.9.8+)
+DT[X, on=.(x, y<=foo)]                # NEW non-equi join (v1.9.8+)
+DT[X, .(x,y,x.y,v), on=.(x, y>=foo)]  # Select x's join columns as well
+
+DT[X, on="x", mult="first"]           # first row of each group
+DT[X, on="x", mult="last"]            # last row of each group
+DT[X, sum(v), by=.EACHI, on="x"]      # join and eval j for each row in i
+DT[X, sum(v)*foo, by=.EACHI, on="x"]  # join inherited scope
+DT[X, sum(v)*i.v, by=.EACHI, on="x"]  # 'i,v' refers to X's v column
+DT[X, on=.(x, v>=v), sum(y)*foo, by=.EACHI] # NEW non-equi join with by=.EACHI (v1.9.8+)
+
+# setting keys
+kDT = copy(DT)                        # (deep) copy DT to kDT to work with it.
+setkey(kDT,x)                         # set a 1-column key. No quotes, for convenience.
+setkeyv(kDT,"x")                      # same (v in setkeyv stands for vector)
+v="x"
+setkeyv(kDT,v)                        # same
+# key(kDT)<-"x"                       # copies whole table, please use set* functions instead
+haskey(kDT)                           # TRUE
+key(kDT)                              # "x"
+
+# fast *keyed* subsets
+kDT["a"]                              # subset-as-join on *key* column 'x'
+kDT["a", on="x"]                      # same, being explicit using 'on=' (preferred)
+
+# all together
+kDT[!"a", sum(v), by=.EACHI]          # get sum(v) for each i != "a"
+
+# multi-column key
+setkey(kDT,x,y)                       # 2-column key
+setkeyv(kDT,c("x","y"))               # same
+
+# fast *keyed* subsets on multi-column key
+kDT["a"]                              # join to 1st column of key
+kDT["a", on="x"]                      # on= is optional, but is preferred
+kDT[.("a")]                           # same, .() is an alias for list()
+kDT[list("a")]                        # same
+kDT[.("a", 3)]                        # join to 2 columns
+kDT[.("a", 3:6)]                      # join 4 rows (2 missing)
+kDT[.("a", 3:6), nomatch=0]           # remove missing
+kDT[.("a", 3:6), roll=TRUE]           # locf rolling join
+kDT[.("a", 3:6), roll=Inf]            # same as above
+kDT[.("a", 3:6), roll=-Inf]           # nocb rolling join
+kDT[!.("a")]                          # not join
+kDT[!"a"]                             # same
+
+# more on special symbols, see also ?"special-symbols"
+DT[.N]                                # last row
+DT[, .N]                              # total number of rows in DT
+DT[, .N, by=x]                        # number of rows in each group
+DT[, .SD, .SDcols=x:y]                # select columns 'x' and 'y'
+DT[, .SD[1]]                          # first row of all columns
+DT[, .SD[1], by=x]                    # first row of 'y' and 'v' for each group in 'x'
+DT[, c(.N, lapply(.SD, sum)), by=x]   # get rows *and* sum columns 'v' and 'y' by group
+DT[, .I[1], by=x]                     # row number in DT corresponding to each group
+DT[, grp := .GRP, by=x]               # add a group counter column
+X[, DT[.BY, y, on="x"], by=x]         # join within each group
+
+# add/update/delete by reference (see ?assign)
+print(DT[, z:=42L])                   # add new column by reference
+print(DT[, z:=NULL])                  # remove column by reference
+print(DT["a", v:=42L, on="x"])        # subassign to existing v column by reference
+print(DT["b", v2:=84L, on="x"])       # subassign to new column by reference (NA padded)
+
+DT[, m:=mean(v), by=x][]              # add new column by reference by group
+                                      # NB: postfix [] is shortcut to print()
+# advanced usage
+DT = data.table(x=rep(c("b","a","c"),each=3), v=c(1,1,1,2,2,1,1,2,2), y=c(1,3,6), a=1:9, b=9:1)
+
+DT[, sum(v), by=.(y%%2)]              # expressions in by
+DT[, sum(v), by=.(bool = y%%2)]       # same, using a named list to change by column name
+DT[, .SD[2], by=x]                    # get 2nd row of each group
+DT[, tail(.SD,2), by=x]               # last 2 rows of each group
+DT[, lapply(.SD, sum), by=x]          # sum of all (other) columns for each group
+DT[, .SD[which.min(v)], by=x]         # nested query by group
+
+DT[, list(MySum=sum(v),
+          MyMin=min(v),
+          MyMax=max(v)),
+    by=.(x, y%%2)]                    # by 2 expressions
+
+DT[, .(a = .(a), b = .(b)), by=x]     # list columns
+DT[, .(seq = min(a):max(b)), by=x]    # j is not limited to just aggregations
+DT[, sum(v), by=x][V1<20]             # compound query
+DT[, sum(v), by=x][order(-V1)]        # ordering results
+DT[, c(.N, lapply(.SD,sum)), by=x]    # get number of observations and sum per group
+DT[, {tmp <- mean(y); 
+      .(a = a-tmp, b = b-tmp)
+      }, by=x]                        # anonymous lambdain 'j', j accepts any valid 
+                                      # expression. TO REMEMBER: every element of 
+                                      # the list becomes a column in result.
+pdf("new.pdf")
+DT[, plot(a,b), by=x]                 # can also plot in 'j'
+dev.off()
+
+# using rleid, get max(y) and min of all cols in .SDcols for each consecutive run of 'v'
+DT[, c(.(y=max(y)), lapply(.SD, min)), by=rleid(v), .SDcols=v:b]
+
+```
+
+```{r}
+# Gaussian
+x=matrix(rnorm(100*20),100,20)
+y=rnorm(100)
+fit1=glmnet(x,y)
+print(fit1)
+coef(fit1,s=0.01) # extract coefficients at a single value of lambda
+predict(fit1,newx=x[1:10,],s=c(0.01,0.005)) # make predictions
+
+#multivariate gaussian
+y=matrix(rnorm(100*3),100,3)
+fit1m=glmnet(x,y,family="mgaussian")
+plot(fit1m,type.coef="2norm")
+
+#binomial
+g2=sample(1:2,100,replace=TRUE)
+fit2=glmnet(x,g2,family="binomial")
+
+#multinomial
+g4=sample(1:4,100,replace=TRUE)
+fit3=glmnet(x,g4,family="multinomial")
+fit3a=glmnet(x,g4,family="multinomial",type.multinomial="grouped")
+#poisson
+N=500; p=20
+nzc=5
+x=matrix(rnorm(N*p),N,p)
+beta=rnorm(nzc)
+f = x[,seq(nzc)]%*%beta
+mu=exp(f)
+y=rpois(N,mu)
+fit=glmnet(x,y,family="poisson")
+plot(fit)
+pfit = predict(fit,x,s=0.001,type="response")
+plot(pfit,y)
+
+#Cox
+set.seed(10101)
+N=1000;p=30
+nzc=p/3
+x=matrix(rnorm(N*p),N,p)
+beta=rnorm(nzc)
+fx=x[,seq(nzc)]%*%beta/3
+hx=exp(fx)
+ty=rexp(N,hx)
+tcens=rbinom(n=N,prob=.3,size=1)# censoring indicator
+y=cbind(time=ty,status=1-tcens) # y=Surv(ty,1-tcens) with library(survival)
+fit=glmnet(x,y,family="cox")
+plot(fit)
+
+# Sparse
+n=10000;p=200
+nzc=trunc(p/10)
+x=matrix(rnorm(n*p),n,p)
+iz=sample(1:(n*p),size=n*p*.85,replace=FALSE)
+x[iz]=0
+sx=Matrix(x,sparse=TRUE)
+inherits(sx,"sparseMatrix")#confirm that it is sparse
+beta=rnorm(nzc)
+fx=x[,seq(nzc)]%*%beta
+eps=rnorm(n)
+y=fx+eps
+px=exp(fx)
+px=px/(1+px)
+ly=rbinom(n=length(px),prob=px,size=1)
+system.time(fit1<-glmnet(sx,y))
+system.time(fit2n<-glmnet(x,y))
+
+```
+
