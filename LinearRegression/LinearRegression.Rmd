@@ -1,6 +1,6 @@
 ---
 title: "Simple Linear Regression Assignment Solutions"
-author: "INSOFE Lab Assignment"
+author: "Haroon Ahmed"
 date: "11 June 2017"
 output:
   html_document:
@@ -9,7 +9,7 @@ output:
     toc_float: yes
 ---
 
-**NOTE** Before starting this assignment please remember to clear your environment, you can do that by running the following code chunk
+Clear your environment
 
 ```{r}
 
@@ -40,7 +40,7 @@ The variables in the dataset are as follows:
 * __ElOut__ : Net hourly Electrical Energy Output of the plant (Range 420.26-495.76 MW)
 
 
-# Agenda for the assignment
+# Agenda
 
 * Get the data
 
