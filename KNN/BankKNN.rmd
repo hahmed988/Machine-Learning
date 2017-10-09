@@ -1,0 +1,259 @@
+#Clear the workspace
+
+rm(list=ls(all=TRUE))
+
+#Set the working directory
+
+setwd("C:\\MOOC\\Insofe\\Module 3 - Methods and Algo in Machine Learning\\KNN - Ensemble\\Code")
+
+#Load the required libraries
+
+library(class)
+library(dummies)
+
+# dummies-1.5.6 provided by Decision Patterns
+library(vegan)
+
+#Read the data
+bankdata = read.csv(file="UniversalBank.csv", header=TRUE, sep=",")
+summary(bankdata)
+sum(is.na(bankdata))
+
+#Subsetting the data by ignoring ID,ZIP.Code and columns
+
+bankdata2 = subset(bankdata, select=-c(ID,ZIP.Code)) 
+bankdata2$Education = as.factor(as.character(bankdata2$Education))
+
+#Creating the dummies
+
+Education = dummy(bankdata2$Education)
+bankdata3 = subset(bankdata2,select=-c(Education)) 
+bankdata4 = cbind(bankdata3,Education)
+
+#Randomly sample 60% of the records for train data
+set.seed(123) 
+
+# to get same data in each time
+train = sample(1:nrow(bankdata4),nrow(bankdata4)*0.6) 
+bankdata_train = bankdata4[train,] 
+bankdata_test = bankdata4[-train,] 
+
+
+#Verify the ratio of loan takers to non loan takers
+table(bankdata4$Personal.Loan)
+table(bankdata_train$Personal.Loan)
+table(bankdata_test$Personal.Loan)
+
+
+#Get the train and test sets excluding the target variable
+bankdata_trainwithoutclass = subset(bankdata_train,select=-c(Personal.Loan))
+bankdata_testwithoutclass = subset(bankdata_test,select=-c(Personal.Loan))
+
+#Deciding the value of k
+#Experiment with various odd values of k; k={1,3,5,7,..}
+
+k = 1
+noOfNeigh <- 1
+
+# Build the model knn with k=1 function in FNN Library
+
+pred <- knn(bankdata_trainwithoutclass, bankdata_testwithoutclass, bankdata_train$Personal.Loan, k=3)
+
+## Teacher Code
+
+# Confusion Matrix
+#a=table(pred,bankdata_test$Personal.Loan)
+a=table(bankdata_test$Personal.Loan, pred)
+
+a
+accu=sum(diag(a))/nrow(bankdata_test)
+accu
+
+# try with k=5 and check accuracy
+k = 5
+pred <- knn(bankdata_trainwithoutclass, bankdata_testwithoutclass, bankdata_train$Personal.Loan, k=5)
+b=table(bankdata_test$Personal.Loan, pred)
+
+b
+accu=sum(diag(b))/nrow(bankdata_test)
+accu
+
+#try with k=7 and check accuracy
+k = 7
+pred <- knn(bankdata_trainwithoutclass, bankdata_testwithoutclass, bankdata_train$Personal.Loan, k=100)
+c=table(bankdata_test$Personal.Loan, pred)
+
+c
+accu=sum(diag(c))/nrow(bankdata_test)
+accu
+
+
+#On Standardized Data
+#Randomly sample 60% of the records for train data
+bankdata5=decostand(bankdata4,"range") 
+
+# standardizing the data using 'Range' method
+
+set.seed(123) 
+
+# to get same data in each time
+train = sample(1:nrow(bankdata5),nrow(bankdata5)*0.6)
+
+bankdata_train = bankdata5[train,] 
+bankdata_test = bankdata5[-train,] 
+
+
+#Get the train and test sets excluding the target variable
+bankdata_trainwithoutclass = subset(bankdata_train,select=-c(Personal.Loan))
+bankdata_testwithoutclass = subset(bankdata_test,select=-c(Personal.Loan))
+
+# Deciding k value for k-NN ** Experiment with various odd values of k; k={1,3,5,7,..}
+k = 1
+noOfNeigh <- 1
+
+
+
+a = table(pred,bankdata_test$Personal.Loan)
+a
+accu = sum(diag(a))/nrow(bankdata_testwithoutclass)
+accu
+
+k = 3
+# try with k=3 and check accuracy
+k = 5
+# try with k=5 and check accuracy
+k = 7
+# try with k=7 and check accuracy
+k = 7, Majority=5
+pred = class::knn(bankdata_trainwithoutclass, bankdata_testwithoutclass, bankdata_train$Personal.Loan, k = 7,l=5)
+pred = knn(bankdata_trainwithoutclass, bankdata_testwithoutclass, bankdata_train$Personal.Loan, k = 7, prob = TRUE)
+a<-table(pred,bankdata_test$Personal.Loan)
+
+accu=sum(diag(a))/nrow(bankdata_test)
+accu
+
+
+#Condensing the data
+#To reduce the complexity of the model data is condensed
+#To understand drop=FALSE parameter have a look at http://adv-r.had.co.nz/Subsetting.html
+
+#condensing the number of records to compute distances from a test record
+
+keep = condense(bankdata_trainwithoutclass, bankdata_train$Personal.Loan)
+
+
+#Run the model on condensed data
+# input only condensed points of train and test in to knn
+
+pred <- knn(bankdata_trainwithoutclass[keep,], bankdata_testwithoutclass, bankdata_train$Personal.Loan[keep])
+
+a <- table(pred,bankdata_test$Personal.Loan)
+a
+accu=sum(diag(a))/nrow(bankdata_testwithoutclass)
+accu
+
+
+#Applying FNN (Fastest NN)
+library(FNN)
+
+pred=FNN::knn(bankdata_trainwithoutclass[keep,], bankdata_testwithoutclass, 
+         bankdata_train$Personal.Loan[keep],k=5, algorithm = 'kd_tree')
+d <- table(pred,bankdata_test$Personal.Loan)
+d
+
+accu=sum(diag(d))/nrow(bankdata_test)
+accu
+
+
+#k-NN Regression
+
+
+rm(list=ls(all=TRUE))
+
+#Set working directory
+
+setwd("C:\\MOOC\\Insofe\\Module 3 - Methods and Algo in Machine Learning\\KNN - Ensemble\\Code")
+
+#Load required packages
+#"Fast Nearest Neighbours" for knn regression
+install.packages("FNN") 
+#to calculate error metrics for regression
+install.packages("Metrics") 
+library(FNN)
+library(Metrics)
+
+#Read/Simulate the data
+
+#to get same random numbers generated every time
+set.seed(12345) 
+
+#Create a dataframe of 100 rows and 25 columns
+data <- data.frame(matrix(data = runif(2500, 24,65), nrow = 100, ncol = 25))
+names(data)
+
+names(data)[25] <- "Target"
+
+#Applying KNN
+#Excluding Target Variable
+
+testData <- data[sample(81:100),1:24]
+trainData <- data[1:80,1:24]
+train.tgt <- data[1:80,25]
+test.tgt <- data[sample(81:100),25]
+
+#Run the model; Experiment with the k-values of 1,3,5,7 etc
+noOfNeigh <- 1
+
+# Code to implement regression using knn --knn.reg
+
+pred <- knn.reg(train = trainData, test = testData, y = train.tgt, k = noOFNeigh)
+
+# Evaluate the predictions
+
+actual <- test.tgt
+pred <- data.frame(pred$pred)
+
+result2 <- rmse(actual = actual, predicted = pred)
+result2
+
+
+k = 3
+# try with k=3 and print error metrics
+pred <- knn.reg(train = trainData, test = testData, y = train.tgt, k = 3)
+actual <- test.tgt
+pred <- data.frame(pred$pred)
+
+result2 <- rmse(actual = actual, predicted = pred)
+result2
+
+
+
+#try with k=5 and print error metrics
+
+pred <- knn.reg(train = trainData, test = testData, y = train.tgt, k = 5)
+actual <- test.tgt
+pred <- data.frame(pred$pred)
+
+result2 <- rmse(actual = actual, predicted = pred)
+result2
+
+
+#try with k=7 and print error metrics
+pred <- knn.reg(train = trainData, test = testData, y = train.tgt, k = 5)
+actual <- test.tgt
+pred <- data.frame(pred$pred)
+
+result2 <- rmse(actual = actual, predicted = pred)
+result2
+
+
+#try with k=7 and print error metrics
+
+pred <- knn.reg(train = trainData, test = testData, y = train.tgt, k = 5)
+actual <- test.tgt
+pred <- data.frame(pred$pred)
+
+result2 <- rmse(actual = actual, predicted = pred)
+result2
+
+
