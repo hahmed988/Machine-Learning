@@ -1,6 +1,6 @@
 ---
-title: "Predicting the Prices of Homes in Boston"
-author: "Multiple Linear Regression INSOFE Lab Session"
+title: "Predicting the Prices of Homes in Boston using Multiple Linear Regression"
+author: "Haroon Ahmed "
 date: "18 June 2017"
 output:
   html_document:
@@ -9,7 +9,7 @@ output:
     toc_float: yes
 ---
 
-**NOTE** Before starting this assignment please remember to clear your environment, you can do that by running the following code chunk
+**NOTE** Clear your environment
 
 ```{r}
 
@@ -20,15 +20,10 @@ rm(list = ls(all=TRUE))
 # Agenda 
 
 * Get the data
-
 * Ask an interesting question
-
 * Explore the data
-
 * Data Pre-processing
-
 * Model the data
-
 * Evaluation
 
 
@@ -39,7 +34,6 @@ rm(list = ls(all=TRUE))
 ```{r}
 
 setwd("C:\\MOOC\\Insofe\\Module 1 - Probability and Statistics\\Linear Regression Module\\20170618_Batch29_CSE7302c_Multiple_Linear_Regression_activity\\20170618_Batch29_CSE7302c_Multiple_Linear_Regression_activity")
-
 housing_data <- read.csv("housing_data.csv")
 
 ```
@@ -49,6 +43,7 @@ housing_data <- read.csv("housing_data.csv")
 ```{r}
 
 str(housing_data)
+summary(housing_data)
 
 ```
 
@@ -90,7 +85,6 @@ str(housing_data)
 ```{r}
 
 head(housing_data)
-
 tail(housing_data)
 
 ```
@@ -102,10 +96,6 @@ tail(housing_data)
 
 2) __How does the nitric oxides concentration in ppm in the air relate to the Median Value of owner-occupied homes?__
 
-3) ????
-
-4) ????
-
 * So, let's get ready to predict the prices of houses!!
 
 # Data Pre-Processing - I
@@ -113,7 +103,6 @@ tail(housing_data)
 ## Missing Values imputation
 
 * Find out the number of missing values in the dataset
-
 * Impute the missing values using the "centralImputation()" function from the DMwR package
 
 ```{r}
@@ -131,15 +120,14 @@ Percent <- ((nrow(housing_data)-nrow(na.omit(housing_data)))/nrow(housing_data))
 HD <- knnImputation(HD,k=10)
 
 
-
-cat_var <- names(housing_data)[which(sapply(housing_data, is.integer))]
-numeric_var <- names(housing_data)[which(sapply(housing_data, is.numeric))]
+#Split Categorical Variable from Numeric Variables
+#There areno categorical Variables
+#cat_var <- names(housing_data)[which(sapply(housing_data, is.integer))]
+#numeric_var <- names(housing_data)[which(sapply(housing_data, is.numeric))]
 sum(is.na(housing_data))
 
 library(DMwR)
-
 housing_data <- centralImputation(housing_data)
-
 sum(is.na(housing_data))
 
 
@@ -159,7 +147,7 @@ summary(housing_data)
 
 ## Scatter Plots
 
-* A few bi-variate relationships are plotted below, but you are encouraged to explore the dataset in more detail
+* A few bi-variate relationships are plotted below
 
 ```{r fig.height= 8, fig.width = 9}
 
@@ -184,15 +172,14 @@ plot(housing_data$MV, housing_data$INDUS, xlab = "Median House Price", ylab = "P
 ```{r fig.height= 8, fig.width = 9}
 
 library(corrplot)
-
-corrplot(cor(housing_data, , use = "complete.obs"), method = "number")
+corrplot(cor(housing_data, , use = "complete.obs"), method = "number", type="lower")
 
 ```
 
 
 # Data Pre-processing - II
 
-* Today we will standardize the data __after__ splitting the data into train and test sets
+* Standardize the data __after__ splitting the data into train and test sets
 
 ## Train/Test Split
 
@@ -209,7 +196,6 @@ train_rows <- sample(x = 1:nrow(housing_data), size = 0.7*nrow(housing_data))
 # We use the above indices to subset the train and test sets from the data
 
 train_data <- housing_data[train_rows, ]
-
 test_data <- housing_data[-train_rows, ]
 
 ```
@@ -251,11 +237,8 @@ test_data[, !names(train_data) %in% c("MV")] <- predict(object = std_model, newd
 ```{r}
 
 model_basic <- lm(formula = MV~. , data = train_data)
-
 summary(model_basic)
-
 par(mfrow = c(2,2))
-
 plot(model_basic)
 
 
@@ -271,7 +254,7 @@ plot(model_basic)
 
 library(MASS)
 
-# Here we use the "backward" direction as model_basic used all the variables to build the regression model
+# Here we try all three direction to build the regression model
 
 model_aic <- stepAIC(model_basic, direction = "both")
 
@@ -317,7 +300,7 @@ vif(model_aicf)
 
 ```
 
-* After applying the stepAIC, the VIF values have slightly reduced, but the variables "RAD" and "TAX" have VIF values higher than 4
+* After applying the stepAIC, the VIF values have slightly reduced, but the variables "RAD" and "TAX" have VIF values higher than 4 in Multi Direction Model
 
 * Let's take a look at the correlation between the "RAD" and "TAX" variables
 
@@ -343,7 +326,6 @@ summary(model3)
 par(mfrow = c(2,2))
 
 plot(model3)
-
 vif(model3)
 
 ```
@@ -367,9 +349,12 @@ Predict the Housing prices of the unseen boston housing data, using the chosen m
 
 ```{r}
 
+#Model Built for experimentation
 preds_model <- predict(model_basic, test_data[, !(names(test_data) %in% c("MV"))])
 preds_model1 <- predict(model_aicf, test_data[, !(names(test_data) %in% c("MV"))])
 preds_model2 <- predict(model_aicb, test_data[, !(names(test_data) %in% c("MV"))])
+
+#Main Model
 preds_model3 <- predict(model_aic, test_data[, !(names(test_data) %in% c("MV"))])
 
 ```
@@ -389,12 +374,10 @@ $$MAE = \dfrac{1}{n}\times|\sum_{i = 1}^{n}y_{i} - \hat{y_{i}}|$$
 ```{r}
 
 
-mae <- function(actual, predicted){
-  
+mae <- function(actual, predicted)
+  {
   error <- actual - predicted
-  
   mean(abs(error))
-  
 }
 
 ```
@@ -407,13 +390,11 @@ $$MSE = \dfrac{1}{n}\times(\sum_{i = 1}^{n}y_{i} - \hat{y_{i}})^2$$
 
 ```{r}
 
-mse <- function(actual, predicted){
-  
+mse <- function(actual, predicted)
+  {
   error <- actual - predicted
-  
   mean(error^2)
-  
-}
+  }
 
 ```
 
@@ -425,13 +406,11 @@ $$RMSE = \sqrt{\dfrac{1}{n}\times(\sum_{i = 1}^{n}y_{i} - \hat{y_{i}})^2}$$
 
 ```{r}
 
-rmse <- function(actual, predicted){
-  
+rmse <- function(actual, predicted)
+  {
   error <- actual - predicted
-  
   sqrt(mean(error^2))
-  
-}
+  }
 
 ```
 
@@ -445,13 +424,11 @@ $$MAPE = \dfrac{100}{n}\times\mid\dfrac{\sum_{i = 1}^{n}y_{i} - \hat{y_{i}}}{y_{
 ```{r}
 
 
-mape <- function(actual, predicted){
-  
+mape <- function(actual, predicted)
+  {
   error <- actual - predicted
-  
   mean(abs(error/actual))*100
-  
-}
+  }
 
 ```
 
@@ -463,11 +440,8 @@ mape <- function(actual, predicted){
 ```{r}
 
 mae(test_data$MV, preds_model)
-
 mse(test_data$MV, preds_model)
-
 rmse(test_data$MV, preds_model)
-
 mape(test_data$MV, preds_model)
 
 # OR
@@ -482,35 +456,7 @@ regr.eval(test_data$MV, preds_model3)
 ```
 
 
-```{r}
-## Estimating several evaluation metrics on different variants of a
-## regression tree and of a SVM, on  two data sets, using one repetition
-## of  10-fold CV
-data(swiss)
-data(mtcars)
 
-## First the user defined functions 
-cv.rpartXse <- function(form, train, test, ...) {
-    require(DMwR)
-    t <- rpartXse(form, train, ...)
-    p <- predict(t, test)
-    mse <- mean((p - resp(form, test))^2)
-    c(nmse = mse/mean((mean(resp(form, train)) - resp(form, test))^2), 
-        mse = mse)
-}
-
-## run the experimental comparison
-results <- experimentalComparison(
-               c(dataset(Infant.Mortality ~ ., swiss),
-                 dataset(mpg ~ ., mtcars)),
-               c(variants('cv.rpartXse',se=c(0,0.5,1))),
-               cvSettings(1,10,1234)
-                                 )
-## get the best scores for dataset and statistic
-bestScores(results)
-
-
-```
 
 
 
