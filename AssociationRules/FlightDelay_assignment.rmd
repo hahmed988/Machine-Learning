@@ -11,8 +11,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Read File
 
-
-
 ```{r cars}
 
 FlightData <- read.csv("FlightDelays.csv")
@@ -21,9 +19,7 @@ FlightData <- read.csv("FlightDelays.csv")
 
 ```
 
-#Look at the summary of all the variables and convert the following variables as factors + Weather + DAY_WEEK + Flight Status# 
-
-
+#Look at the summary of all the variables and convert the following variables as factors -> Weather + DAY_WEEK + Flight Status# 
 
 ```{r pressure, echo=FALSE}
 
@@ -42,19 +38,11 @@ FlightData$Flight.Status <- as.factor(FlightData$Flight.Status)
 ```{r}
 
 FlightData$levels<-ifelse(FlightData$CRS_DEP_TIME>=600 & FlightData$CRS_DEP_TIME<=1200,"level1",
-               ifelse(FlightData$CRS_DEP_TIME>=1200 & FlightData$CRS_DEP_TIME<=1800,"level2",
-                      ifelse(FlightData$CRS_DEP_TIME>=1800 & FlightData$CRS_DEP_TIME<=2100,"level3","level4")))
+                      ifelse(FlightData$CRS_DEP_TIME>=1200 & FlightData$CRS_DEP_TIME<=1800,"level2",
+                        ifelse(FlightData$CRS_DEP_TIME>=1800 & FlightData$CRS_DEP_TIME<=2100,"level3","level4")))
 
 FlightData$levels <- as.factor(FlightData$levels)
 
-#library(infotheo)
-#FlightData$CRS_DEP_TIME <- discretize(FlightData$CRS_DEP_TIME, disc = 'equalwidth', nbins = 4)
-
-#FlightData$CRS_DEP_TIME <- as.factor(FlightData$CRS_DEP_TIME)
-#plot(Dept_time)
-
-#tapply(FlightData$CRS_DEP_TIME,Dept_Bin,min)
-#tapply(FlightData$CRS_DEP_TIME,Dept_Bin,max)
 
 ```
 
@@ -116,8 +104,8 @@ rules <- (rules[!is.redundant(rules)])
 #Pot and visualize the rules
 
 ```{r}
-
-library(arulesviz)
+install.packages('arulesViz')
+library(arulesViz)
 plot(rules)
 
 ```
