@@ -1,6 +1,6 @@
 ---
 title: "Prediction of Term Deposit Subscription"
-author: "INSOFE Lab Activity on Logistic Regression"
+author: "Haroon Ahmed"
 date: "1 July 2017"
 output:
   html_document:
@@ -9,7 +9,7 @@ output:
     toc_float: yes
 ---
 
-**NOTE** Before starting this assignment please remember to clear your environment, you can do that by running the following code chunk
+**NOTE** Clear your environment
 
 ```{r}
 
@@ -20,13 +20,9 @@ rm(list = ls(all=TRUE))
 # Agenda 
 
 * Get the data
-
 * Data Pre-processing
-
 * Build a model
-
 * Predictions
-
 * Communication
 
 # Reading & Understanding the Data

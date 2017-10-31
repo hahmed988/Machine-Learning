@@ -1,0 +1,283 @@
+---
+title: Time Series Analysis on GE Power Ltd stock in BSE and to Predict the  closing
+  Price of a Stock in FUTURE
+output:
+  html_document:
+    toc: yes
+  html_notebook:
+    fig_caption: yes
+    highlight: tango
+    theme: united
+    toc: yes
+    toc_float: yes
+---
+### Problem Description
+ 
+ Build time series models in using GE Power Stock  in the BSE.Our goal is to forecast the  closing price of the GEPower for future time period using time series algorithms and evaluating each of the algorithms.
+
+###Clear the Global Environment
+```{r}
+rm(list=ls(all=TRUE))
+```
+### Library Call
+
+```{r}
+
+install.packages('forecast')
+install.packages('lubridate')
+install.packages('DataCombine')
+install.packages('imputeTS')
+install.packages('plyr')
+install.packages('dplyr')
+install.packages('TTR')
+install.packages('data.table')
+install.packages('Quandl')
+install.packages('DMwR')
+
+
+```
+
+```{r}
+
+library(forecast)
+library(lubridate)
+library(DataCombine)
+library(imputeTS)
+library(plyr)
+library(dplyr)
+library(TTR)
+library(graphics)
+library(data.table)
+library(Quandl)
+library(DMwR)
+
+```
+## Read the data from csv
+* Read the data using CSV for now 
+* GEPower_Data<-Quandl("BSE/BOM532309") 
+```{r}
+
+data = read.csv("BSE-BOM532309.csv")
+
+```
+
+## Observe the structure 
+
+```{r}
+
+names(data)
+nrow(data)
+
+```
+
+## Head of the Data
+
+```{r}
+
+head(data)
+tail(data)
+
+```
+## Observation and Domain Knowldege
+* Stock exchange is usually closed on Sunday and Holidays therefore those days cannot be taken as missing values 
+* Take the closing price and dates column and convert it into a new data frame
+```{r}
+
+str(data)
+data2 <- data[(names(data) %in% c("Date", "Close"))]
+
+```
+
+## Converting the date into year ,month and day
+```{r}
+
+data2$Date <- as.Date(data2$Date)
+head(data2)
+#Data2.Day <- data2 %>% group_by(Date) %>% summarise("CLOSE" = mean(Close))
+plot(data2)
+
+```
+
+
+### Observation on Average Price
+* The price is not changing daily very much 
+* We need to see mothly aggregation instead of daily
+* Adding week column in addition can help in this 
+* use any of the following aggregations such as Min , Max or Average for the price
+
+```{r}
+
+
+data2$YEAR <-as.numeric(format(data2$Date,format="%Y"))
+data2$WEEK <-as.numeric(format(data2$Date,format="%W"))
+data2$MONTH <-as.numeric(format(data2$Date,format="%m"))
+
+AggregateClose <- data2 %>% group_by(YEAR, MONTH) %>% summarise("CLOSE" = mean(Close))
+#plot(data2)
+```
+
+### Splitting of the Data
+* Random split is not possible because here we will be in need of sequence where by we miss the data points
+* splitting is done by sequential splitting
+```{r}
+
+data2$Date <- data2$Date[order(data2$YEAR, data2$MONTH)]
+
+Train <- AggregateClose[1:(nrow(AggregateClose) - 4),]
+Test <- AggregateClose[(nrow(AggregateClose) - 3):nrow(AggregateClose),]
+
+
+```
+
+### converting into time series 
+* our target variable is price and each week has a price aggregated
+```{r}
+
+CloseValues <- ts(Train$CLOSE, frequency = 12)
+
+```
+
+### Vizualize the time series Data
+```{r}
+
+plot(CloseValues,type="l",lwd=3,col="red",xlab="YEAR",ylab="Close",main="Time series plot For GE Stock")
+
+```
+
+### Decomposed Time Series
+* Decompose will provide us with the info on seasonality,trend and randomness
+```{r}
+Closedecomposed=decompose(CloseValues)
+plot(Closedecomposed,col="Red")
+
+```
+### ACF,PACF 
+* Autocorrelation is the linear dependence of a variable with itself at two points in time
+* For stationary processes, autocorrelation between any two observations only depends on the time lag h between them
+*  Partial autocorrelation is the autocorrelation between yt and yt–h after removing any linear dependence on y1,y2, ..., yth+1
+```{r}
+
+par(mfrow=c(2,2))
+acf(CloseValues,lag=30)
+pacf(CloseValues,lag=30)
+
+
+Close1 <- ts(Train$CLOSE, frequency =1)
+acf(Close1,lag=30)
+pacf(Close1,lag=30)
+
+```
+* Looking at the Y scale in ACF we observe that trend is more dominant than seasonality
+* Data is not stationay and we need to stationarize the data
+
+### Stationarize by differencing
+
+```{r}
+
+par(mfrow=c(2,3))
+plot(diff(Close1,lag = 1),type="l"); acf(diff(Close1,lag = 1),lag=30) ;pacf(diff(Close1,lag = 1),lag=30)
+plot(diff(Close1,lag=2),type="l");  acf(diff(Close1,lag = 2),lag=30); pacf(diff(Close1,lag = 2),lag=30)
+
+```
+* one lag has stationarize the data we can use ndiffs of forecast package to check no of differences required to      stationarize the data
+
+### Modelling  the time series using simple moving averages
+* Time series Price has trend 
+* Modelling the time series behaviour by simple moving averages
+```{r}
+
+par(mfrow=c(1,1))
+fitsma <- SMA(CloseValues,n=2)
+# predsma <- forecast(fitsma,h=4)
+predsma <- forecast(fitsma[!is.na(fitsma)],h=4)
+plot(predsma)
+
+```
+### Define the metric MAPE 
+```{r}
+
+smaTrainMape <- regr.eval(CloseValues[2:length(CloseValues)],fitsma[2:length(CloseValues)])
+smaTestMape <- regr.eval(Test$CLOSE,predsma$mean)
+smaTrainMape
+
+
+
+
+```
+
+### Weighted Moving Averages
+```{r}
+
+fitwma<- WMA(CloseValues,n=2,1:2)
+# predwma <- forecast(fitwma,h=4)
+predwma <- forecast(fitwma[!is.na(fitwma)],h=4)
+plot(predwma)
+
+#Error Metrics
+wmaTrainMape <- regr.eval(CloseValues[2:length(CloseValues)],fitwma[2:length(CloseValues)])
+wmaTestMape <- regr.eval(Test$CLOSE,predwma$mean)
+wmaTrainMape
+
+```
+
+
+## HoltWinters Model
+```{r}
+
+holtpriceforecast <- HoltWinters(CloseValues,gamma=FALSE)
+head(holtpriceforecast$fitted)
+
+```
+## Improvement of the model
+
+```{r}
+
+Closeholtforecast <- HoltWinters(CloseValues, beta=TRUE, gamma=TRUE, seasonal="additive")
+head(Closeholtforecast$fitted)
+
+```
+*Since you are building the models on monthly data, you will get 12 seasonal components. 
+### Prediction on the Train
+```{r}
+
+holtforecastTrain <- data.frame(Closeholtforecast$fitted)
+holtforecastTrainpredictions <- holtforecastTrain$xhat
+head(holtforecastTrainpredictions)
+
+```
+
+### Prediction on test data
+```{r}
+
+holtCloseforecast<-  forecast(Closeholtforecast,h = 4)
+plot(holtCloseforecast,ylim = c(-100,1000))
+
+hwTestMape <- regr.eval(Test$CLOSE,holtCloseforecast$mean)
+hwTestMape
+
+```
+
+### Arima Models
+```{r}
+
+model1 <- arima(CloseValues,c(0,0,0))
+model1
+
+
+```
+
+### Using Auto Arima
+```{r}
+MODEL_ARIMA <- auto.arima(CloseValues, ic='aic')
+summary(MODEL_ARIMA)
+
+```
+### Forecast on the models 
+```{r}
+  
+Closearimaforecasts1 <- forecast(model1, h=4)
+plot(Closearimaforecasts1)
+
+```
+
+
