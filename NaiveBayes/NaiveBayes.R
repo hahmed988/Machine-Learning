@@ -1,7 +1,5 @@
+#Practice Code 
 # Example and code from:https://eight2late.wordpress.com/2015/11/06/a-gentle-introduction-to-naive-bayes-classification-using-r/
-
-
-
 
 library(mlbench)
 data(HouseVotes84)  # This dataset is contained in mlbench library

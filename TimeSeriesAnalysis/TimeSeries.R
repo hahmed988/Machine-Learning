@@ -1,3 +1,6 @@
+#Time Series Practice 
+
+
 rm(list=ls(all=TRUE))
 dirpath = "C:\\MOOC\\Machine Learning\\TimeSeriesAnalysis"
 setwd(dirpath)

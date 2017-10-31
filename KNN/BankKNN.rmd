@@ -4,7 +4,7 @@ rm(list=ls(all=TRUE))
 
 #Set the working directory
 
-setwd("C:\\MOOC\\Insofe\\Module 3 - Methods and Algo in Machine Learning\\KNN - Ensemble\\Code")
+setwd("C:\\MOOC\\Machine Learning\\KNN")
 
 #Load the required libraries
 

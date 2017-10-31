@@ -235,6 +235,7 @@ birthsArima <-
             
 birthsArima
 birthstimeseriesforecasts <- 
-  forecast.Arima(birthsArima,  h=5)
+  forecast(birthsArima,  h=5)
                 
-plot.forecast(birthstimeseriesforecasts)
+plot(forecast(birthstimeseriesforecasts))
+

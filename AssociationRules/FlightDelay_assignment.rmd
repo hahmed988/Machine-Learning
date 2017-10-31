@@ -13,9 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r cars}
 
-FlightData <- read.csv("FlightDelays.csv")
 
-
+FlightData <- read.csv("C:\\MOOC\\Machine Learning\\AssociationRules\\FlightDelays.csv")
 
 ```
 

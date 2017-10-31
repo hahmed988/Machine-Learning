@@ -1,3 +1,5 @@
+rm(list=ls(all=TRUE))
+library(forecast)
 
 kings <- scan("http://robjhyndman.com/tsdldata/misc/kings.dat",skip=3)
 kingstimeseries <- ts(kings)
@@ -11,6 +13,6 @@ pacf(diff(kingstimeseries))
 kingsArima <- auto.arima(kingstimeseries)
 kingsArima
 # Forecast the life of next 5 kings
-kingsforecast <- forecast.Arima(kingsArima, h=5)  
+kingsforecast <- forecast(kingsArima, h=5) 
 
-plot.forecast(kingsforecast)
+plot(forecast(kingsforecast))

@@ -1,13 +1,10 @@
+#Steps To Perform
+
 #1.predict Total revenue generated on Given Customer dataset(knn regression)
 # do necessary preprocessing
 # try both standardized and un-standardized
-
-
 #2.Bin target variable in to two classes based on revenue generated And aplly knn classification(knn classification)
-
-
 #3.upload R file in GitHUb
-
 
 #Libraries
 
@@ -19,7 +16,7 @@ rm(list=ls(all=TRUE))
 
 #Set the working directory
 
-setwd("C:\\MOOC\\Insofe\\Module 3 - Methods and Algo in Machine Learning\\KNN - Ensemble\\20170729-batch29-cse7305c-knn-cf-assignment-hahmed988-master (1)\\20170729-batch29-cse7305c-knn-cf-assignment-hahmed988-master")
+setwd("C:\\MOOC\\Machine Learning\\KNN")
 
 #Read the data
 Custdata = read.csv(file="CustomerData.csv", header=TRUE, sep=",")
@@ -102,9 +99,11 @@ table(Custdata$TotalRevenueGenerated)
 Custdata_trainWithoutClass = subset(CustData_trainClassification,select=-c(TotalRevenueGenerated))
 Custdata_testWithoutClass = subset(CustData_testClassification,select=-c(TotalRevenueGenerated))
 
+#Model Building
 pred3 <- knn(train = Custdata_trainWithoutClass, test = Custdata_testWithoutClass, y = CustData_trainClassification$TotalRevenueGenerated, k = 3)
 
 
+#Error Metrics
 a=table(CustData_testClassification$TotalRevenueGenerated, pred3)
 
 a

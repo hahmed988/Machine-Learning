@@ -1,6 +1,6 @@
 ---
 title: "Decision Trees Assignment"
-author: "INSOFE Lab Assignment on Decision Trees"
+author: "Haroon Ahmed"
 date: "16 July 2017"
 output:
   html_document:
@@ -11,7 +11,7 @@ output:
 
 # C5.0 Trees
 
-**NOTE** Before starting this assignment please remember to clear your environment, you can do that by running the following code chunk
+**NOTE** Clear your environment
 
 ```{r}
 
@@ -45,8 +45,7 @@ Make sure the dataset is located in your current working directory, or else you 
 
 ```{r}
 
-PatientData <- read.csv('ilpd_data.csv')
-
+PatientData <- read.csv('C:\\MOOC\\Machine Learning\\DecisionTrees\\ilpd_data.csv')
 
 ```
 
@@ -86,7 +85,6 @@ PatientData <- read.csv('ilpd_data.csv')
 str(PatientData)
 summary(PatientData)
 
-
 ```
 
 ```{r}
@@ -117,7 +115,6 @@ sum(is.na(PatientData))
 
 str(PatientData)
 
-
 ```
 
 ### Split the Data into train and test sets
@@ -145,8 +142,6 @@ test_data <- PatientData[-train_index, ]
 library(DMwR)
 train_data <- knnImputation(train_data, k = 5, scale = T)
 test_data <- knnImputation(test_data, k=5, scale = T)
-
-
 
 ```
 
@@ -178,7 +173,6 @@ c5_rules <- C5.0(disease~., train_data, rules= T)
 
 ```{r}
 
-
 C5imp(c5_tree, metric= 'usage')
 
 ```
@@ -191,7 +185,6 @@ C5imp(c5_tree, metric= 'usage')
 ```{r}
 
 summary(c5_rules)
-
 
 ```
 
@@ -230,13 +223,11 @@ library(e1071)
 
 confusionMatrix(preds, test_data$disease)
 
-
-
 ```
 
 # CART Trees
 
-**NOTE** Before starting this assignment please remember to clear your environment, you can do that by running the following code chunk
+**NOTE** Clear your environment, you can do that by running the following code chunk
 
 ```{r}
 
@@ -273,8 +264,7 @@ rm(list = ls(all=TRUE))
 
 ```{r}
 
-HeatData <- read.csv('building_energy.csv')
-
+HeatData <- read.csv('C:\\MOOC\\Machine Learning\\DecisionTrees\\building_energy.csv')
 
 ```
 
@@ -290,9 +280,6 @@ str(HeatData)
 summary(HeatData)
 head(HeatData)
 tail(HeatData)
-
-
-
 
 ```
 
@@ -313,11 +300,7 @@ sum(is.na(HeatData))
 * Verify the data types assigned to the variables in the dataset
 
 ```{r}
-
-# Enter answer here
-
 str(HeatData)
-
 
 ```
 
@@ -333,8 +316,6 @@ set.seed(1234)
 train_index <- createDataPartition(HeatData$heating_load, p= 0.7, list = F)
 traindata <- HeatData[train_index, ]
 testdata <- HeatData[-train_index, ]
-
-
 
 ```
 
@@ -378,18 +359,11 @@ rpart.plot(reg_tree)
 ```{r}
 
 preds_reg <- predict(reg_tree, testdata)
-
-
-```
-
-```{r}
-
-
 library(DMwR)
-
 regr.eval(testdata$heating_load, preds_reg)
 
 ```
+
 
 
 

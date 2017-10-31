@@ -1,6 +1,6 @@
 ---
 title: "Cluster Analysis for Wholesale Customer Segmentation"
-author: "Clustering INSOFE Lab Session"
+author: "Haroon Ahmed"
 date: "9 July 2017"
 output:
   html_document:
@@ -49,7 +49,7 @@ rm(list = ls(all=TRUE))
 
 # Use the setwd() function to get to the directory where the data is present
 
-crime_data <- read.csv("crime_data.csv")
+crime_data <- read.csv("C:\\MOOC\\Machine Learning\\Clustering\\crime_data.csv")
 
 ```
 
@@ -58,7 +58,6 @@ crime_data <- read.csv("crime_data.csv")
 ```{r}
 
 str(crime_data)
-
 summary(crime_data)
 
 ```
@@ -68,7 +67,6 @@ summary(crime_data)
 ```{r}
 
 head(crime_data)
-
 tail(crime_data)
 
 ```
@@ -81,7 +79,6 @@ tail(crime_data)
 
 sum(is.na(crime_data))
 
-
 ```
 
 
@@ -90,7 +87,6 @@ sum(is.na(crime_data))
 ```{r}
 
 rownames(crime_data) <- crime_data$State
-
 crime_data <- crime_data[, !(colnames(crime_data) %in% "State")]
 
 ```
@@ -100,7 +96,6 @@ crime_data <- crime_data[, !(colnames(crime_data) %in% "State")]
 ```{r}
 
 crime_data <- scale(crime_data, center = T, scale = T)
-
 ```
 
 # Data exploration
@@ -110,11 +105,8 @@ crime_data <- scale(crime_data, center = T, scale = T)
 ```{r, fig.width=12, fig.height=8}
 
 library(factoextra)
-
 distance <- get_dist(crime_data)
-
 fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
-
 
 ```
 
@@ -125,7 +117,6 @@ fviz_dist(distance, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4
 ```{r}
 
 dist <- dist(crime_data, method = "euclidean")
-
 hc_fit <- hclust(dist, method = "ward.D2")
 
 
@@ -144,11 +135,8 @@ plot(hc_fit)
 ```{r}
 
 points_hc <- cutree(hc_fit, k = 4)
-
 crime_clusts_hc <- cbind(points_hc, crime_data)
-
 head(crime_clusts_hc)
-
 colnames(crime_clusts_hc)[1] <- "cluster_hc"
 
 ```
@@ -158,7 +146,6 @@ colnames(crime_clusts_hc)[1] <- "cluster_hc"
 ```{r, fig.height=5, fig.width=10}
 
 plot(hc_fit)
-
 rect.hclust(hc_fit, k = 4, border = "red")
 
 ```
@@ -171,7 +158,6 @@ rect.hclust(hc_fit, k = 4, border = "red")
 ```{r}
 
 km_basic <- kmeans(crime_data, centers = 2)
-
 str(km_basic)
 
 ```
@@ -180,21 +166,14 @@ str(km_basic)
 
 ```{r}
 
-
 wss <- 0
 
-
 for (i in 1:10) {
-  
   cfit = kmeans(crime_data, centers = i)
-  
-
   wss[i] <- sum(cfit$withinss)
-  
 }
 
 set.seed(123)
-
 fviz_nbclust(crime_data, kmeans, method = "wss")
 
 
@@ -207,13 +186,9 @@ fviz_nbclust(crime_data, kmeans, method = "wss")
 # We can choose a k = 4, 5 or 6
 
 km_clust <- kmeans(crime_data, 4)
-
 km_points <- km_clust$cluster
-
 crime_clusts_km <- as.data.frame(cbind(km_clust$cluster, crime_data))
-
 colnames(crime_clusts_km)[1] <- "cluster_km"
-
 head(crime_clusts_km)
 
 ```
@@ -237,9 +212,7 @@ fviz_cluster(km_clust, crime_data)
 ```{r}
 
 set.seed(1234)
-
 sample_rows <- sample(1:nrow(crime_data), 0.80*nrow(crime_data))
-
 extracted_obs <- crime_data[sample_rows, ]
 
 ```
@@ -257,7 +230,6 @@ km_extr <- kmeans(extracted_obs, 4)
 ```{r}
 
 library(mclust)
-
 adjustedRandIndex(km_clust$cluster[sample_rows], km_extr$cluster)
 
 ```
