@@ -1,15 +1,15 @@
+#Steps to perfom
+
 # Build a recommendation engine for movies
 # Do necessary preprocessing if required and follow the steps given in class room activity
-
-
 #upload R file in github
 
-
+#Clean your environment
 rm(list=ls(all=TRUE))
 #install.packages('recommenderlab')
 library(recommenderlab) 
 
-MoviesData <- read.csv(file="Movies.csv", header=TRUE, sep=",")
+MoviesData <- read.csv(file="C:\\MOOC\\Machine Learning\\RecommendationEngine\\Movies.csv", header=TRUE, sep=",")
 MoviesData$ID <- NULL
 
 sum(is.na(MoviesData))
